@@ -32,7 +32,11 @@ body:
 
 ```
 {
-
+{
+  "token": “[INSERT_YOUR_DEVICE_TOKEN",
+  "thing": “[INSERT_THING_ID]”.
+  “device”: “[INSERT-DEVICE-ID]”.
+}
 }
 ```
 
