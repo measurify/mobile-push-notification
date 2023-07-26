@@ -1,53 +1,58 @@
-
+//Updated to version 26/07/2023 by Dario Giardini
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
-class PushMessagingExample extends StatefulWidget {
+final Logger logger = Logger();
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
   @override
-  _PushMessagingExampleState createState() => _PushMessagingExampleState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _PushMessagingExampleState extends State<PushMessagingExample> {
-  String _homeScreenText = "Waiting for token...";
-  String _messageText = "Waiting for message...";
-
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+class _MyHomePageState extends State<MyHomePage> {
+  String homeScreenText = "Waiting for token...";
+  String messageText = "Waiting for message...";
 
   @override
   void initState() {
     super.initState();
-    _firebaseMessaging.configure(
-      onMessage: (Map<String, dynamic> message) async {
-        setState(() {
-          _messageText = "Push Messaging message: $message";
-        });
-        print("onMessage: $message");
-      },
-      onLaunch: (Map<String, dynamic> message) async {
-        setState(() {
-          _messageText = "Push Messaging message: $message";
-        });
-        print("onLaunch: $message");
-      },
-      onResume: (Map<String, dynamic> message) async {
-        setState(() {
-          _messageText = "Push Messaging message: $message";
-        });
-        print("onResume: $message");
-      },
-    );
-    _firebaseMessaging.requestNotificationPermissions(
-        const IosNotificationSettings(sound: true, badge: true, alert: true));
-    _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings) {
-      print("Settings registered: $settings");
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      String title = message.notification?.title ?? "Cannot get title";
+      String body = message.notification?.body ?? "Cannot get body";
+
+      setState(() {
+        messageText = "Push Messaging message:\n$title\n$body";
+      });
+
+      logger.d("Message body: $body");
     });
-    _firebaseMessaging.getToken().then((String token) {
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      String title = message.notification?.title ?? "Cannot get title";
+      String body = message.notification?.body ?? "Cannot get body";
+
+      setState(() {
+        messageText = "Push Messaging message:\n$title\n$body";
+      });
+
+      logger.d("Message body: $body");
+    });
+
+    FirebaseMessaging.instance
+        .requestPermission(sound: true, badge: true, alert: true)
+        .then((value) => logger.i("Settings registered: $value"));
+
+    FirebaseMessaging.instance.getToken().then((token) {
       assert(token != null);
       setState(() {
-        _homeScreenText = "Push Messaging token: $token";
+        homeScreenText = "Push Messaging token: $token";
       });
-      print(_homeScreenText);
+      logger.d('Token: $token');
     });
   }
 
@@ -61,24 +66,25 @@ class _PushMessagingExampleState extends State<PushMessagingExample> {
           child: Column(
             children: <Widget>[
               Center(
-                child: Text(_homeScreenText),
+                child: Text(homeScreenText),
               ),
               Row(children: <Widget>[
                 Expanded(
-                  child: Text(_messageText),
+                  child: Text(messageText),
                 ),
               ])
             ],
-
           ),
         ));
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Initialize Firebase app
   runApp(
-    MaterialApp(
-      home: PushMessagingExample(),
+    const MaterialApp(
+      home: MyHomePage(),
     ),
   );
 }
